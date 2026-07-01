@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kossah • Artyom Mers</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap');
+        
+        body {
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+        
+        .video-container {
+            position: relative;
+            width: 100%;
+            max-width: 420px;
+            margin: 0 auto;
+            background: #000;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        
+        .overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+        }
+        
+        .action-btn {
+            transition: transform 0.2s;
+        }
+        
+        .action-btn:active {
+            transform: scale(0.9);
+        }
+        
+        .progress-bar {
+            height: 3px;
+            background: rgba(255,255,255,0.3);
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .progress {
+            height: 100%;
+            background: #ff2d55;
+            width: 0%;
+        }
+    </style>
+</head>
+<body class="bg-black text-white">
+    <div class="video-container mx-auto">
+        <!-- Video -->
+        <video id="mainVideo" class="w-full h-full" loop playsinline>
+            <!-- Замени src на путь к твоему видео -->
+            <source src="YOUR_VIDEO.mp4" type="video/mp4">
+            Ваш браузер не поддерживает видео.
+        </video>
+
+        <!-- Top bar (как в TikTok) -->
+        <div class="absolute top-0 left-0 right-0 z-20 flex items-center justify-between px-4 py-3 bg-gradient-to-b from-black/70 to-transparent">
+            <div class="flex items-center gap-2">
+                <i class="fa-solid fa-arrow-left text-xl"></i>
+                <div>
+                    <span class="text-sm font-semibold">TikTok</span>
+                </div>
+            </div>
+            <div class="text-xs bg-white/10 px-3 py-1 rounded-full">
+                Оригинальный звук
+            </div>
+        </div>
+
+        <!-- Username -->
+        <div class="absolute bottom-28 left-4 z-20">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-white rounded-full overflow-hidden border-2 border-white">
+                    <img src="https://i.pravatar.cc/128?u=kossah" alt="Kossah" class="w-full h-full object-cover">
+                </div>
+                <div>
+                    <div class="font-semibold">@kossah</div>
+                    <div class="text-sm">Artyom Mers</div>
+                </div>
+                <button onclick="follow()" 
+                        class="ml-4 bg-white text-black px-6 py-1.5 rounded-full text-sm font-semibold hover:bg-gray-200 transition">
+                    Подписаться
+                </button>
+            </div>
+        </div>
+
+        <!-- Right sidebar actions -->
+        <div class="absolute bottom-40 right-4 z-20 flex flex-col items-center gap-6 text-white">
+            <!-- Profile -->
+            <div onclick="showProfile()" class="flex flex-col items-center cursor-pointer">
+                <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-white relative">
+                    <img src="https://i.pravatar.cc/128?u=kossah" alt="Kossah" class="w-full h-full object-cover">
+                    <div class="absolute -bottom-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center border-2 border-black">
+                        +
+                    </div>
+                </div>
+            </div>
+
+            <!-- Like -->
+            <div onclick="toggleLike()" class="flex flex-col items-center cursor-pointer action-btn">
+                <div id="likeIcon" class="text-4xl">
+                    ❤️
+                </div>
+                <div id="likeCount" class="text-sm font-medium mt-1">47.5K</div>
+            </div>
+
+            <!-- Comment -->
+            <div onclick="showComments()" class="flex flex-col items-center cursor-pointer action-btn">
+                <i class="fa-solid fa-comment-dots text-4xl"></i>
+                <div class="text-sm font-medium mt-1">296</div>
+            </div>
+
+            <!-- Share -->
+            <div onclick="shareVideo()" class="flex flex-col items-center cursor-pointer action-btn">
+                <i class="fa-solid fa-share text-4xl"></i>
+                <div class="text-sm font-medium mt-1">48.9K</div>
+            </div>
+
+            <!-- Music -->
+            <div class="w-10 h-10 rounded-full border-2 border-white overflow-hidden animate-spin-slow">
+                <img src="https://i.pravatar.cc/64?u=music" alt="music" class="w-full h-full object-cover">
+            </div>
+        </div>
+
+        <!-- Bottom info -->
+        <div class="absolute bottom-16 left-4 right-4 z-20 text-sm">
+            <div class="flex items-center gap-2 mb-2">
+                <span class="bg-white/20 px-3 py-1 rounded-full text-xs flex items-center gap-1">
+                    <i class="fa-solid fa-music"></i>
+                    оригинальный звук
+                </span>
+            </div>
+        </div>
+
+        <!-- Custom controls -->
+        <div class="absolute bottom-0 left-0 right-0 z-30 bg-gradient-to-t from-black/90 to-transparent px-4 pb-8">
+            <!-- Progress -->
+            <div onclick="seekVideo(event)" class="progress-bar rounded mb-4">
+                <div id="progress" class="progress rounded"></div>
+            </div>
+            
+            <div class="flex items-center justify-between">
+                <div onclick="togglePlay()" class="cursor-pointer">
+                    <i id="playIcon" class="fa-solid fa-pause text-3xl"></i>
+                </div>
+                
+                <div class="text-xs opacity-75">
+                    <span id="currentTime">0:00</span> / <span id="duration">0:00</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Play overlay (initial) -->
+        <div id="playOverlay" onclick="togglePlay()" 
+             class="absolute inset-0 flex items-center justify-center z-10 bg-black/30 hidden">
+            <i class="fa-solid fa-play text-7xl text-white/90"></i>
+        </div>
+    </div>
+
+    <!-- Comments modal -->
+    <div id="commentsModal" class="hidden fixed inset-0 bg-black/90 z-50 flex items-end">
+        <div class="bg-zinc-900 w-full max-w-md mx-auto rounded-t-3xl h-3/4 flex flex-col">
+            <div class="p-4 border-b border-zinc-800 flex justify-between items-center">
+                <div class="font-semibold">Комментарии (296)</div>
+                <i onclick="hideComments()" class="fa-solid fa-xmark text-2xl cursor-pointer"></i>
+            </div>
+            <div class="flex-1 p-4 overflow-auto text-sm space-y-6">
+                <div class="flex gap-3">
+                    <div class="w-8 h-8 bg-gray-600 rounded-full flex-shrink-0"></div>
+                    <div>
+                        <div class="font-medium">@user1</div>
+                        <div>Крутой видос 🔥</div>
+                        <div class="text-xs text-gray-400 mt-1">12K</div>
+                    </div>
+                </div>
+                <!-- Добавляй комментарии по вкусу -->
+            </div>
+            <div class="p-4 border-t border-zinc-800">
+                <input type="text" placeholder="Написать комментарий..." 
+                       class="w-full bg-zinc-800 rounded-full px-5 py-3 text-sm outline-none">
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const video = document.getElementById('mainVideo');
+        const progress = document.getElementById('progress');
+        const currentTimeEl = document.getElementById('currentTime');
+        const durationEl = document.getElementById('duration');
+        const playIcon = document.getElementById('playIcon');
+        const likeIcon = document.getElementById('likeIcon');
+        const likeCount = document.getElementById('likeCount');
+        let isLiked = false;
+
+        // Замени на реальный путь к видео
+        // video.src = "https://your-video-link.mp4";
+
+        video.addEventListener('timeupdate', () => {
+            const percent = (video.currentTime / video.duration) * 100;
+            progress.style.width = percent + '%';
+            
+            currentTimeEl.textContent = formatTime(video.currentTime);
+        });
+
+        video.addEventListener('loadedmetadata', () => {
+            durationEl.textContent = formatTime(video.duration);
+        });
+
+        function formatTime(seconds) {
+            const min = Math.floor(seconds / 60);
+            const sec = Math.floor(seconds % 60);
+            return `${min}:${sec < 10 ? '0' : ''}${sec}`;
+        }
+
+        function togglePlay() {
+            if (video.paused) {
+                video.play();
+                playIcon.classList.remove('fa-play');
+                playIcon.classList.add('fa-pause');
+                document.getElementById('playOverlay').classList.add('hidden');
+            } else {
+                video.pause();
+                playIcon.classList.remove('fa-pause');
+                playIcon.classList.add('fa-play');
+            }
+        }
+
+        function seekVideo(e) {
+            const rect = e.currentTarget.getBoundingClientRect();
+            const pos = (e.clientX - rect.left) / rect.width;
+            video.currentTime = pos * video.duration;
+        }
+
+        function toggleLike() {
+            isLiked = !isLiked;
+            if (isLiked) {
+                likeIcon.innerHTML = '❤️';
+                likeIcon.style.color = '#ff2d55';
+                let count = parseFloat(likeCount.textContent);
+                likeCount.textContent = (count + 1).toFixed(1) + 'K';
+            } else {
+                likeIcon.innerHTML = '♡';
+                likeIcon.style.color = 'white';
+            }
+        }
+
+        function showComments() {
+            document.getElementById('commentsModal').classList.remove('hidden');
+        }
+
+        function hideComments() {
+            document.getElementById('commentsModal').classList.add('hidden');
+        }
+
+        function shareVideo() {
+            alert('Поделиться в TikTok / Telegram / VK...');
+        }
+
+        function follow() {
+            alert('Вы подписались на @kossah 🎉');
+        }
+
+        function showProfile() {
+            alert('Профиль Kossah');
+        }
+
+        // Автозапуск и двойное нажатие для лайка
+        video.addEventListener('click', (e) => {
+            if (e.detail === 2) {
+                toggleLike();
+            } else {
+                togglePlay();
+            }
+        });
+
+        // Клавиатура
+        document.addEventListener('keydown', (e) => {
+            if (e.key === ' ' || e.key === 'k') {
+                e.preventDefault();
+                togglePlay();
+            }
+            if (e.key === 'l') toggleLike();
+        });
+
+        // Инициализация
+        setTimeout(() => {
+            video.play().catch(() => {});
+        }, 800);
+    </script>
+</body>
+</html>
