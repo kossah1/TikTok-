@@ -3,21 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Фото в Telegram</title>
+    <title>Камера Telegram</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-        body {
+        * {
             margin: 0;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
             min-height: 100vh;
             background: var(--tg-theme-bg-color, #1a1a2e);
-            font-family: system-ui;
-            color: var(--tg-theme-text-color, white);
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
             flex-direction: column;
-            gap: 20px;
+            align-items: center;
             padding: 20px;
+            gap: 20px;
+            color: var(--tg-theme-text-color, white);
         }
         #preview {
             width: 100%;
@@ -25,90 +28,203 @@
             aspect-ratio: 1;
             background: var(--tg-theme-secondary-bg-color, #16213e);
             border-radius: 20px;
+            border: 2px dashed var(--tg-theme-hint-color, #555);
             display: flex;
             justify-content: center;
             align-items: center;
-            font-size: 48px;
-            border: 2px dashed var(--tg-theme-hint-color, #555);
+            font-size: 64px;
             overflow: hidden;
+            transition: 0.3s;
+            position: relative;
         }
         #preview img {
             width: 100%;
             height: 100%;
             object-fit: cover;
         }
+        #preview.has-photo {
+            border-style: solid;
+            border-color: var(--tg-theme-button-color, #0088cc);
+        }
+        .btn-group {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
         button {
-            padding: 16px 40px;
-            background: var(--tg-theme-button-color, #0088cc);
-            color: var(--tg-theme-button-text-color, white);
+            padding: 16px;
             border: none;
             border-radius: 16px;
             font-size: 18px;
-            font-weight: bold;
+            font-weight: 600;
             cursor: pointer;
-            transition: 0.2s;
+            transition: all 0.2s;
+            width: 100%;
+            background: var(--tg-theme-button-color, #0088cc);
+            color: var(--tg-theme-button-text-color, white);
+        }
+        button:active {
+            transform: scale(0.96);
+            opacity: 0.8;
+        }
+        button.secondary {
+            background: var(--tg-theme-secondary-bg-color, #2d2d44);
+            color: var(--tg-theme-text-color, white);
+        }
+        #status {
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 14px;
+            text-align: center;
+            background: var(--tg-theme-secondary-bg-color, #2d2d44);
+            opacity: 0.8;
             width: 100%;
             max-width: 400px;
         }
-        button:active { transform: scale(0.96); }
-        #status {
-            font-size: 14px;
-            opacity: 0.7;
-            text-align: center;
+        .hidden {
+            display: none !important;
         }
     </style>
 </head>
 <body>
 
 <div id="preview">📷</div>
-<button id="photoBtn">📸 Сделать фото</button>
-<div id="status">Нажмите кнопку, чтобы открыть камеру</div>
+
+<div class="btn-group">
+    <button id="cameraBtn">📸 Открыть камеру</button>
+    <button id="sendBtn" class="secondary hidden">📤 Отправить фото</button>
+</div>
+
+<div id="status">Нажмите кнопку, чтобы снять фото</div>
 
 <script>
-    let tg = window.Telegram.WebApp;
+    // Инициализация WebApp
+    const tg = window.Telegram.WebApp;
     tg.expand(); // Растягиваем на весь экран
+    tg.ready();
 
+    // Элементы
     const preview = document.getElementById('preview');
     const status = document.getElementById('status');
-    const btn = document.getElementById('photoBtn');
+    const cameraBtn = document.getElementById('cameraBtn');
+    const sendBtn = document.getElementById('sendBtn');
 
-    // Функция для запроса фото через Telegram
-    function takePhoto() {
+    let currentPhoto = null; // Храним фото в base64
+
+    // === Функция открытия камеры Telegram ===
+    function openTelegramCamera() {
         status.textContent = '⏳ Открываем камеру...';
         
-        // Отправляем запрос боту на открытие камеры
-        tg.sendData(JSON.stringify({
-            action: 'take_photo'
-        }));
-
-        // Подписываемся на получение фото от бота
-        tg.onEvent('message', (data) => {
-            if (data && data.photo) {
-                // Показываем фото на странице
-                preview.innerHTML = `<img src="${data.photo}" alt="Фото">`;
-                status.textContent = '✅ Фото получено! Нажмите снова для нового снимка';
-                tg.HapticFeedback.impactOccurred('light');
+        // Используем метод showPopup для запроса фото
+        tg.showPopup({
+            title: '📸 Сделать фото',
+            message: 'Выберите действие:',
+            buttons: [
+                { id: 'camera', type: 'default', text: '📷 Снять фото' },
+                { id: 'gallery', type: 'default', text: '🖼 Выбрать из галереи' },
+                { id: 'cancel', type: 'cancel', text: 'Отмена' }
+            ]
+        }, (buttonId) => {
+            if (buttonId === 'camera') {
+                // Запрашиваем фото через Telegram
+                tg.requestContact(); // Это трюк - просим доступ к контакту
+                // Но на самом деле мы хотим фото!
+                // Используем другой метод - отправляем команду боту
+                tg.sendData(JSON.stringify({
+                    action: 'take_photo'
+                }));
+                status.textContent = '📸 Открываем камеру...';
+            } else if (buttonId === 'gallery') {
+                // Здесь можно открыть галерею через input
+                openGallery();
+            } else {
+                status.textContent = '❌ Отменено';
             }
         });
     }
 
-    // Обработчик кнопки
-    btn.addEventListener('click', takePhoto);
+    // === Альтернативный способ: открыть камеру через WebView ===
+    function openCameraDirect() {
+        // Создаём скрытый input для файлов
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = 'image/*';
+        input.capture = 'environment'; // 'user' для передней камеры
+        
+        input.onchange = (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const photoData = event.target.result;
+                    showPhoto(photoData);
+                    status.textContent = '✅ Фото получено!';
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+        
+        input.click();
+    }
 
-    // Если бот присылает фото через WebApp
+    // === Показать фото на странице ===
+    function showPhoto(dataUrl) {
+        currentPhoto = dataUrl;
+        preview.innerHTML = `<img src="${dataUrl}" alt="Фото">`;
+        preview.classList.add('has-photo');
+        sendBtn.classList.remove('hidden');
+        tg.HapticFeedback.impactOccurred('light');
+    }
+
+    // === Отправить фото ===
+    function sendPhoto() {
+        if (!currentPhoto) return;
+        
+        // Отправляем фото боту
+        tg.sendData(JSON.stringify({
+            action: 'send_photo',
+            photo: currentPhoto
+        }));
+        
+        status.textContent = '📤 Фото отправлено!';
+        tg.HapticFeedback.notificationOccurred('success');
+        
+        // Закрываем WebApp через секунду
+        setTimeout(() => {
+            tg.close();
+        }, 1000);
+    }
+
+    // === Обработка сообщений от бота ===
+    tg.onEvent('message', (data) => {
+        try {
+            const msg = JSON.parse(data);
+            if (msg.photo) {
+                showPhoto(msg.photo);
+                status.textContent = '✅ Фото получено от бота!';
+            }
+        } catch (e) {}
+    });
+
+    // === Обработка данных от бота ===
     window.addEventListener('message', (event) => {
         try {
             const data = JSON.parse(event.data);
             if (data.photo) {
-                preview.innerHTML = `<img src="${data.photo}" alt="Фото">`;
+                showPhoto(data.photo);
                 status.textContent = '✅ Фото получено!';
             }
         } catch (e) {}
     });
 
+    // === Кнопки ===
+    cameraBtn.addEventListener('click', openCameraDirect);
+    sendBtn.addEventListener('click', sendPhoto);
+
     // Статус готовности
-    tg.ready();
-    status.textContent = '✅ Готово! Нажмите кнопку';
+    status.textContent = '✅ Готово! Нажмите "Открыть камеру"';
 </script>
 </body>
 </html>
