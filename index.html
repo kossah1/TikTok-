@@ -3,39 +3,112 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Открыть камеру</title>
+    <title>Фото в Telegram</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
         body {
+            margin: 0;
             display: flex;
             justify-content: center;
             align-items: center;
-            height: 100vh;
-            margin: 0;
+            min-height: 100vh;
+            background: var(--tg-theme-bg-color, #1a1a2e);
             font-family: system-ui;
-            background: #0b0b0b;
-            color: white;
+            color: var(--tg-theme-text-color, white);
             flex-direction: column;
             gap: 20px;
+            padding: 20px;
         }
-        a {
-            display: inline-block;
-            padding: 18px 40px;
-            background: #0088cc;
-            color: white;
-            text-decoration: none;
-            border-radius: 40px;
-            font-size: 20px;
+        #preview {
+            width: 100%;
+            max-width: 400px;
+            aspect-ratio: 1;
+            background: var(--tg-theme-secondary-bg-color, #16213e);
+            border-radius: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 48px;
+            border: 2px dashed var(--tg-theme-hint-color, #555);
+            overflow: hidden;
+        }
+        #preview img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        button {
+            padding: 16px 40px;
+            background: var(--tg-theme-button-color, #0088cc);
+            color: var(--tg-theme-button-text-color, white);
+            border: none;
+            border-radius: 16px;
+            font-size: 18px;
             font-weight: bold;
+            cursor: pointer;
             transition: 0.2s;
+            width: 100%;
+            max-width: 400px;
         }
-        a:active { transform: scale(0.95); }
-        .note { opacity: 0.5; font-size: 14px; max-width: 300px; text-align: center; }
+        button:active { transform: scale(0.96); }
+        #status {
+            font-size: 14px;
+            opacity: 0.7;
+            text-align: center;
+        }
     </style>
 </head>
 <body>
-    <h2>📷 Открыть камеру в:</h2>
-    <a href="tg://camera">Telegram</a>
-    <a href="whatsapp://camera">WhatsApp</a>
-    <div class="note">⚠️ Работает только если приложение установлено</div>
+
+<div id="preview">📷</div>
+<button id="photoBtn">📸 Сделать фото</button>
+<div id="status">Нажмите кнопку, чтобы открыть камеру</div>
+
+<script>
+    let tg = window.Telegram.WebApp;
+    tg.expand(); // Растягиваем на весь экран
+
+    const preview = document.getElementById('preview');
+    const status = document.getElementById('status');
+    const btn = document.getElementById('photoBtn');
+
+    // Функция для запроса фото через Telegram
+    function takePhoto() {
+        status.textContent = '⏳ Открываем камеру...';
+        
+        // Отправляем запрос боту на открытие камеры
+        tg.sendData(JSON.stringify({
+            action: 'take_photo'
+        }));
+
+        // Подписываемся на получение фото от бота
+        tg.onEvent('message', (data) => {
+            if (data && data.photo) {
+                // Показываем фото на странице
+                preview.innerHTML = `<img src="${data.photo}" alt="Фото">`;
+                status.textContent = '✅ Фото получено! Нажмите снова для нового снимка';
+                tg.HapticFeedback.impactOccurred('light');
+            }
+        });
+    }
+
+    // Обработчик кнопки
+    btn.addEventListener('click', takePhoto);
+
+    // Если бот присылает фото через WebApp
+    window.addEventListener('message', (event) => {
+        try {
+            const data = JSON.parse(event.data);
+            if (data.photo) {
+                preview.innerHTML = `<img src="${data.photo}" alt="Фото">`;
+                status.textContent = '✅ Фото получено!';
+            }
+        } catch (e) {}
+    });
+
+    // Статус готовности
+    tg.ready();
+    status.textContent = '✅ Готово! Нажмите кнопку';
+</script>
 </body>
 </html>
