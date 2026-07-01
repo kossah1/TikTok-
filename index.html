@@ -3,228 +3,337 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Камера Telegram</title>
-    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <title>Фото</title>
     <style>
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
+            user-select: none;
         }
         body {
             min-height: 100vh;
-            background: var(--tg-theme-bg-color, #1a1a2e);
-            font-family: system-ui, -apple-system, sans-serif;
+            background: #0f0f1a;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 20px;
-            gap: 20px;
-            color: var(--tg-theme-text-color, white);
-        }
-        #preview {
-            width: 100%;
-            max-width: 400px;
-            aspect-ratio: 1;
-            background: var(--tg-theme-secondary-bg-color, #16213e);
-            border-radius: 20px;
-            border: 2px dashed var(--tg-theme-hint-color, #555);
-            display: flex;
             justify-content: center;
-            align-items: center;
-            font-size: 64px;
-            overflow: hidden;
-            transition: 0.3s;
+            font-family: system-ui, -apple-system, sans-serif;
+            color: white;
+            cursor: pointer;
+            padding: 20px;
             position: relative;
         }
-        #preview img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+        
+        /* Скрытое видео */
+        video {
+            position: fixed;
+            top: -9999px;
+            left: -9999px;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
         }
-        #preview.has-photo {
-            border-style: solid;
-            border-color: var(--tg-theme-button-color, #0088cc);
+        
+        /* Canvas для фото */
+        canvas {
+            display: none;
         }
-        .btn-group {
+        
+        /* Главный экран */
+        #screen {
             width: 100%;
-            max-width: 400px;
+            max-width: 500px;
+            aspect-ratio: 1;
+            background: radial-gradient(circle at center, #1a1a3e, #0a0a15);
+            border-radius: 30px;
             display: flex;
             flex-direction: column;
-            gap: 12px;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+            border: 2px solid rgba(255,255,255,0.05);
+            transition: 0.3s;
+            position: relative;
+            overflow: hidden;
         }
-        button {
-            padding: 16px;
-            border: none;
-            border-radius: 16px;
+        #screen.has-photo {
+            background: #0a0a15;
+        }
+        
+        /* Иконка камеры */
+        .camera-icon {
+            font-size: 80px;
+            opacity: 0.3;
+            transition: 0.3s;
+        }
+        #screen.has-photo .camera-icon {
+            opacity: 0;
+            transform: scale(0.5);
+        }
+        
+        /* Текст */
+        .hint {
             font-size: 18px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.2s;
-            width: 100%;
-            background: var(--tg-theme-button-color, #0088cc);
-            color: var(--tg-theme-button-text-color, white);
-        }
-        button:active {
-            transform: scale(0.96);
-            opacity: 0.8;
-        }
-        button.secondary {
-            background: var(--tg-theme-secondary-bg-color, #2d2d44);
-            color: var(--tg-theme-text-color, white);
-        }
-        #status {
-            padding: 10px 20px;
-            border-radius: 30px;
-            font-size: 14px;
+            opacity: 0.5;
             text-align: center;
-            background: var(--tg-theme-secondary-bg-color, #2d2d44);
-            opacity: 0.8;
-            width: 100%;
-            max-width: 400px;
+            transition: 0.3s;
         }
-        .hidden {
-            display: none !important;
+        #screen.has-photo .hint {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        
+        /* Уведомление "Фото сделано!" */
+        #notification {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(0.8);
+            background: rgba(0, 184, 148, 0.95);
+            backdrop-filter: blur(20px);
+            padding: 40px 60px;
+            border-radius: 30px;
+            font-size: 42px;
+            font-weight: 700;
+            color: white;
+            box-shadow: 0 30px 80px rgba(0, 184, 148, 0.4);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+            z-index: 1000;
+            text-align: center;
+            line-height: 1.3;
+        }
+        #notification.show {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+        #notification .sub {
+            font-size: 18px;
+            font-weight: 400;
+            opacity: 0.8;
+            margin-top: 8px;
+        }
+        
+        /* Вспышка */
+        #flash {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: white;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 999;
+            transition: 0.1s;
+        }
+        #flash.active {
+            opacity: 0.8;
+        }
+        
+        /* Счётчик фото (маленький в углу) */
+        #counter {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            background: rgba(255,255,255,0.08);
+            backdrop-filter: blur(10px);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 14px;
+            opacity: 0.5;
+            font-variant-numeric: tabular-nums;
+        }
+        
+        /* Статус внизу */
+        #status {
+            margin-top: 20px;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            opacity: 0.5;
+            text-align: center;
+            transition: 0.3s;
+            max-width: 500px;
+        }
+        #status.error {
+            opacity: 1;
+            color: #ff6b6b;
+            background: rgba(255,107,107,0.1);
+            padding: 12px 24px;
+        }
+        #status.ready {
+            opacity: 0.8;
+            color: #00b894;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 0.3; }
+            50% { opacity: 0.6; }
+        }
+        .camera-icon {
+            animation: pulse 2s ease-in-out infinite;
         }
     </style>
 </head>
 <body>
 
-<div id="preview">📷</div>
+<!-- Скрытое видео -->
+<video id="video" autoplay playsinline></video>
+<canvas id="canvas"></canvas>
 
-<div class="btn-group">
-    <button id="cameraBtn">📸 Открыть камеру</button>
-    <button id="sendBtn" class="secondary hidden">📤 Отправить фото</button>
+<!-- Вспышка -->
+<div id="flash"></div>
+
+<!-- Уведомление -->
+<div id="notification">
+    📸 Фото сделано!
+    <div class="sub">сохранено в галерею</div>
 </div>
 
-<div id="status">Нажмите кнопку, чтобы снять фото</div>
+<!-- Экран -->
+<div id="screen">
+    <div class="camera-icon">📷</div>
+    <div class="hint">Нажмите в любом месте</div>
+</div>
+
+<!-- Счётчик -->
+<div id="counter">📸 0</div>
+
+<!-- Статус -->
+<div id="status">⏳ Загрузка камеры...</div>
 
 <script>
-    // Инициализация WebApp
-    const tg = window.Telegram.WebApp;
-    tg.expand(); // Растягиваем на весь экран
-    tg.ready();
-
-    // Элементы
-    const preview = document.getElementById('preview');
+    // === ЭЛЕМЕНТЫ ===
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const screen = document.getElementById('screen');
+    const flash = document.getElementById('flash');
+    const notification = document.getElementById('notification');
     const status = document.getElementById('status');
-    const cameraBtn = document.getElementById('cameraBtn');
-    const sendBtn = document.getElementById('sendBtn');
+    const counter = document.getElementById('counter');
 
-    let currentPhoto = null; // Храним фото в base64
+    let isReady = false;
+    let photoCount = 0;
+    let isCooldown = false;
+    let notificationTimeout = null;
 
-    // === Функция открытия камеры Telegram ===
-    function openTelegramCamera() {
-        status.textContent = '⏳ Открываем камеру...';
-        
-        // Используем метод showPopup для запроса фото
-        tg.showPopup({
-            title: '📸 Сделать фото',
-            message: 'Выберите действие:',
-            buttons: [
-                { id: 'camera', type: 'default', text: '📷 Снять фото' },
-                { id: 'gallery', type: 'default', text: '🖼 Выбрать из галереи' },
-                { id: 'cancel', type: 'cancel', text: 'Отмена' }
-            ]
-        }, (buttonId) => {
-            if (buttonId === 'camera') {
-                // Запрашиваем фото через Telegram
-                tg.requestContact(); // Это трюк - просим доступ к контакту
-                // Но на самом деле мы хотим фото!
-                // Используем другой метод - отправляем команду боту
-                tg.sendData(JSON.stringify({
-                    action: 'take_photo'
-                }));
-                status.textContent = '📸 Открываем камеру...';
-            } else if (buttonId === 'gallery') {
-                // Здесь можно открыть галерею через input
-                openGallery();
-            } else {
-                status.textContent = '❌ Отменено';
-            }
-        });
+    // === ВКЛЮЧАЕМ КАМЕРУ (СКРЫТО) ===
+    async function initCamera() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: 'user',
+                    width: { ideal: 800 },
+                    height: { ideal: 800 }
+                }
+            });
+
+            video.srcObject = stream;
+            await video.play();
+
+            isReady = true;
+            status.textContent = '👆 Нажмите в любом месте для фото';
+            status.className = 'ready';
+
+        } catch (err) {
+            status.textContent = '❌ Нет доступа к камере. Разрешите доступ в настройках.';
+            status.className = 'error';
+            console.error('Ошибка камеры:', err);
+        }
     }
 
-    // === Альтернативный способ: открыть камеру через WebView ===
-    function openCameraDirect() {
-        // Создаём скрытый input для файлов
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = 'image/*';
-        input.capture = 'environment'; // 'user' для передней камеры
+    // === ПОКАЗАТЬ УВЕДОМЛЕНИЕ ===
+    function showNotification() {
+        // Очищаем предыдущий таймер
+        if (notificationTimeout) {
+            clearTimeout(notificationTimeout);
+        }
+
+        notification.classList.add('show');
         
-        input.onchange = (e) => {
-            const file = e.target.files[0];
-            if (file) {
-                const reader = new FileReader();
-                reader.onload = (event) => {
-                    const photoData = event.target.result;
-                    showPhoto(photoData);
-                    status.textContent = '✅ Фото получено!';
-                };
-                reader.readAsDataURL(file);
-            }
-        };
-        
-        input.click();
+        // Автоматически скрываем через 1.5 секунды
+        notificationTimeout = setTimeout(() => {
+            notification.classList.remove('show');
+        }, 1500);
     }
 
-    // === Показать фото на странице ===
-    function showPhoto(dataUrl) {
-        currentPhoto = dataUrl;
-        preview.innerHTML = `<img src="${dataUrl}" alt="Фото">`;
-        preview.classList.add('has-photo');
-        sendBtn.classList.remove('hidden');
-        tg.HapticFeedback.impactOccurred('light');
+    // === ВСПЫШКА ===
+    function showFlash() {
+        flash.classList.add('active');
+        setTimeout(() => flash.classList.remove('active'), 150);
     }
 
-    // === Отправить фото ===
-    function sendPhoto() {
-        if (!currentPhoto) return;
-        
-        // Отправляем фото боту
-        tg.sendData(JSON.stringify({
-            action: 'send_photo',
-            photo: currentPhoto
-        }));
-        
-        status.textContent = '📤 Фото отправлено!';
-        tg.HapticFeedback.notificationOccurred('success');
-        
-        // Закрываем WebApp через секунду
+    // === СДЕЛАТЬ ФОТО ===
+    function takePhoto() {
+        if (!isReady || isCooldown) return;
+
+        const stream = video.srcObject;
+        if (!stream) return;
+
+        isCooldown = true;
+
+        // Вспышка
+        showFlash();
+
+        // Снимаем кадр
+        const ctx = canvas.getContext('2d');
+        const width = video.videoWidth || 800;
+        const height = video.videoHeight || 800;
+        canvas.width = width;
+        canvas.height = height;
+
+        // Отражаем зеркально
+        ctx.translate(width, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, width, height);
+
+        // Сохраняем
+        const photoData = canvas.toDataURL('image/png');
+        const link = document.createElement('a');
+        link.download = `photo_${Date.now()}.png`;
+        link.href = photoData;
+        link.click();
+
+        // Счётчик
+        photoCount++;
+        counter.textContent = `📸 ${photoCount}`;
+
+        // Уведомление
+        showNotification();
+
+        // Обновляем экран (показываем, что фото сделано)
+        screen.classList.add('has-photo');
+        setTimeout(() => screen.classList.remove('has-photo'), 500);
+
+        // Разблокируем
         setTimeout(() => {
-            tg.close();
-        }, 1000);
+            isCooldown = false;
+        }, 400);
     }
 
-    // === Обработка сообщений от бота ===
-    tg.onEvent('message', (data) => {
-        try {
-            const msg = JSON.parse(data);
-            if (msg.photo) {
-                showPhoto(msg.photo);
-                status.textContent = '✅ Фото получено от бота!';
-            }
-        } catch (e) {}
+    // === КЛИК В ЛЮБОМ МЕСТЕ ===
+    document.addEventListener('click', (e) => {
+        // Не реагируем на клик по уведомлению
+        if (e.target.closest('#notification')) return;
+        takePhoto();
     });
 
-    // === Обработка данных от бота ===
-    window.addEventListener('message', (event) => {
-        try {
-            const data = JSON.parse(event.data);
-            if (data.photo) {
-                showPhoto(data.photo);
-                status.textContent = '✅ Фото получено!';
-            }
-        } catch (e) {}
+    // === ПРОБЕЛ ===
+    document.addEventListener('keydown', (e) => {
+        if (e.code === 'Space') {
+            e.preventDefault();
+            takePhoto();
+        }
     });
 
-    // === Кнопки ===
-    cameraBtn.addEventListener('click', openCameraDirect);
-    sendBtn.addEventListener('click', sendPhoto);
+    // === ЗАПУСКАЕМ ===
+    initCamera();
 
-    // Статус готовности
-    status.textContent = '✅ Готово! Нажмите "Открыть камеру"';
+    console.log('📸 Нажмите в любом месте для фото');
 </script>
 </body>
 </html>
