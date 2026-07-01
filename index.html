@@ -7,8 +7,12 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
     <style>
-        body { margin: 0; background: #000; font-family: system-ui, -apple-system, sans-serif; }
-        .container {
+        body {
+            margin: 0;
+            background: #000;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .tiktok-player {
             max-width: 420px;
             margin: 0 auto;
             height: 100vh;
@@ -21,107 +25,111 @@
             height: 100%;
             object-fit: cover;
         }
-        .right-actions {
+        .right-panel {
             position: absolute;
-            right: 12px;
-            bottom: 180px;
-            z-index: 20;
+            right: 8px;
+            bottom: 220px;
+            z-index: 30;
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 22px;
+            gap: 28px;
         }
-        .action {
+        .action-btn {
             display: flex;
             flex-direction: column;
             align-items: center;
             color: white;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.6);
+            text-shadow: 0 1px 3px rgba(0,0,0,0.8);
         }
         .heart {
             font-size: 42px;
-            transition: all 0.2s;
+            line-height: 1;
+        }
+        .bottom-card {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            color: black;
+            border-top-left-radius: 20px;
+            border-top-right-radius: 20px;
+            z-index: 40;
         }
     </style>
 </head>
 <body>
 
-<div class="container">
+<div class="tiktok-player">
 
     <!-- Video -->
-    <video id="video" loop playsinline>
+    <video id="video" loop playsinline class="w-full h-full">
         <source src="YOUR_VIDEO.mp4" type="video/mp4">
     </video>
 
-    <!-- Right side actions (как на скрине) -->
-    <div class="right-actions">
-        <!-- Profile -->
-        <div class="action">
-            <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-white relative mb-1">
-                <img src="https://i.pravatar.cc/150?u=kossah" alt="" class="w-full h-full object-cover">
-                <div class="absolute bottom-0 right-0 bg-red-500 text-white text-xl w-6 h-6 rounded-full flex items-center justify-center border-2 border-black">+
+    <!-- Right panel (лайки, комменты, шаринг) -->
+    <div class="right-panel">
+        <div class="action-btn">
+            <div class="w-14 h-14 rounded-full overflow-hidden border-2 border-white relative">
+                <img src="https://i.pravatar.cc/150?u=kossah" alt="">
+                <div class="absolute -bottom-1 -right-1 bg-red-500 rounded-full w-6 h-6 flex items-center justify-center text-white text-xl border-2 border-black">+
                 </div>
             </div>
         </div>
 
-        <!-- Like -->
-        <div onclick="toggleLike()" class="action cursor-pointer">
+        <div onclick="toggleLike()" class="action-btn cursor-pointer">
             <div id="heart" class="heart">♡</div>
-            <div id="likeCount" class="text-sm font-medium mt-1">47.5K</div>
+            <div id="likeCount" class="text-[15px] font-medium mt-1">47.5K</div>
         </div>
 
-        <!-- Comment -->
-        <div onclick="showComments()" class="action cursor-pointer">
-            <i class="fa-solid fa-comment-dots text-5xl"></i>
-            <div class="text-sm font-medium mt-1">296</div>
+        <div onclick="showComments()" class="action-btn cursor-pointer">
+            <i class="fa-solid fa-comment-dots text-[42px]"></i>
+            <div class="text-[15px] font-medium mt-1">296</div>
         </div>
 
-        <!-- Share -->
-        <div onclick="shareVideo()" class="action cursor-pointer">
-            <i class="fa-solid fa-share text-5xl"></i>
-            <div class="text-sm font-medium mt-1">48.9K</div>
+        <div onclick="shareVideo()" class="action-btn cursor-pointer">
+            <i class="fa-solid fa-arrow-turn-up text-[42px] rotate-45"></i>
+            <div class="text-[15px] font-medium mt-1">48.9K</div>
         </div>
     </div>
 
-    <!-- Bottom username -->
-    <div class="absolute bottom-28 left-4 text-white z-20">
-        <div class="font-bold text-2xl">Artyom Mers</div>
-        <div class="flex items-center gap-1 mt-1">
-            <i class="fa-solid fa-music text-sm"></i>
-            <span class="text-sm">оригинальный звук</span>
+    <!-- Username -->
+    <div class="absolute bottom-36 left-4 z-20 text-white">
+        <div class="text-2xl font-bold">Artyom Mers</div>
+        <div class="flex items-center gap-2 mt-1 text-sm">
+            <i class="fa-solid fa-music"></i>
+            <span>оригинальный звук</span>
         </div>
     </div>
 
-    <!-- Bottom Share Card (как на фото) -->
-    <div class="absolute bottom-0 left-0 right-0 bg-white text-black p-4 rounded-t-3xl">
-        <div class="flex items-start gap-3">
-            <div class="w-12 h-12 rounded-full overflow-hidden flex-shrink-0">
-                <img src="https://i.pravatar.cc/150?u=kossah" alt="Kossah">
-            </div>
-            <div class="flex-1 pt-1">
-                <div><strong>Kossah</strong> поделился(-лась) с вами видео.</div>
-                <div class="text-sm text-gray-600 mt-1">Турниры тут 👉 Tr: KODEX Tournaments</div>
-                
-                <div class="grid grid-cols-3 gap-4 mt-4 text-center text-xs">
-                    <div>
-                        <div class="font-bold">112</div>
-                        <div class="text-gray-500">Подписки</div>
-                    </div>
-                    <div>
-                        <div class="font-bold">632</div>
-                        <div class="text-gray-500">Подписчики</div>
-                    </div>
-                    <div>
-                        <div class="font-bold">224.3K</div>
-                        <div class="text-gray-500">Лайки</div>
-                    </div>
-                </div>
+    <!-- Bottom white card -->
+    <div class="bottom-card p-4 pt-5">
+        <div class="flex gap-3">
+            <img src="https://i.pravatar.cc/150?u=kossah" class="w-12 h-12 rounded-full" alt="">
+            <div>
+                <div class="font-semibold text-base">Kossah поделился(-лась) с вами видео.</div>
+                <div class="text-sm text-gray-600">Турниры тут 👉 Tr: KODEX Tournaments</div>
             </div>
         </div>
 
-        <button onclick="openInTikTok()" 
-                class="w-full mt-5 bg-[#FE2C55] hover:bg-[#ff1f4d] transition text-white font-semibold py-4 rounded-2xl text-lg flex items-center justify-center gap-2">
-            <i class="fa-brands fa-tiktok"></i>
+        <div class="flex justify-between mt-5 text-center text-sm">
+            <div>
+                <div class="font-bold">112</div>
+                <div class="text-xs text-gray-500">Подписки</div>
+            </div>
+            <div>
+                <div class="font-bold">632</div>
+                <div class="text-xs text-gray-500">Подписчики</div>
+            </div>
+            <div>
+                <div class="font-bold">224.3K</div>
+                <div class="text-xs text-gray-500">Лайки</div>
+            </div>
+        </div>
+
+        <button onclick="openTikTok()" 
+                class="mt-6 w-full bg-[#FF2C55] text-white font-semibold py-4 rounded-2xl text-lg">
             Смотреть в TikTok
         </button>
     </div>
@@ -130,39 +138,33 @@
 
 <script>
     const video = document.getElementById('video');
-    let liked = false;
+    let isLiked = false;
 
     video.addEventListener('click', () => {
-        if (video.paused) video.play();
-        else video.pause();
+        video.paused ? video.play() : video.pause();
     });
 
     function toggleLike() {
-        liked = !liked;
+        isLiked = !isLiked;
         const heart = document.getElementById('heart');
-        if (liked) {
-            heart.textContent = '❤️';
-            heart.style.transform = 'scale(1.3)';
-            setTimeout(() => heart.style.transform = 'scale(1)', 200);
-        } else {
-            heart.textContent = '♡';
-        }
+        heart.textContent = isLiked ? '❤️' : '♡';
+        if (isLiked) heart.style.color = '#FF2C55';
     }
 
     function showComments() {
-        alert("Комментарии — 296");
+        alert('Комментарии (296)');
     }
 
     function shareVideo() {
-        alert("Поделиться");
+        alert('Поделиться видео');
     }
 
-    function openInTikTok() {
-        alert("Открыть в TikTok (имитация)");
+    function openTikTok() {
+        alert('Открыть в TikTok');
     }
 
     // Автозапуск
-    setTimeout(() => video.play(), 800);
+    setTimeout(() => video.play(), 500);
 </script>
 
 </body>
